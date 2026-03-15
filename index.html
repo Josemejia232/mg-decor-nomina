@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MG Decor — Control de Nómina</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f0f0ee;color:#1a1a1a;font-size:13px}
+.app{display:flex;height:100vh;min-height:600px}
+.sidebar{width:200px;flex-shrink:0;background:#1e2a38;display:flex;flex-direction:column}
+.logo{padding:1.25rem 1rem 1rem;border-bottom:1px solid rgba(255,255,255,0.07)}
+.logo-title{font-size:15px;font-weight:600;color:#fff}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px;text-transform:uppercase;letter-spacing:.05em}
+.nav-section{font-size:9px;font-weight:600;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:.08em;padding:.9rem 1rem .3rem}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 1rem;cursor:pointer;font-size:12px;color:rgba(255,255,255,0.55);border-left:2px solid transparent;transition:all 0.15s}
+.nav-item:hover{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85)}
+.nav-item.active{background:rgba(255,255,255,0.08);color:#fff;border-left-color:#4a9eff;font-weight:500}
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;background:#f0f0ee}
+.topbar{background:#fff;border-bottom:1px solid #e0dedd;padding:.7rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:600}
+.topbar-sub{font-size:11px;color:#888;margin-top:1px}
+.page{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
+.page.active{display:flex}
+.page-scroll{display:none;flex:1;overflow-y:auto;padding:1.25rem 1.5rem}
+.page-scroll.active{display:block}
+.toolbar{padding:.6rem 1.5rem;display:flex;gap:8px;align-items:center;background:#fff;border-bottom:1px solid #e0dedd;flex-shrink:0;flex-wrap:wrap}
+.search-box{padding:5px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;background:#fff;color:#1a1a1a;width:200px;font-family:inherit}
+.filter-sel{padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;background:#fff;color:#1a1a1a;font-family:inherit}
+.btn{padding:6px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:12px;font-weight:500;color:#1a1a1a;transition:all 0.15s;font-family:inherit}
+.btn:hover{background:#f5f5f3}
+.btn-primary{background:#1e2a38;color:#fff;border-color:#1e2a38}
+.btn-primary:hover{background:#2d3f52}
+.btn-success{background:#1a7a4a;color:#fff;border-color:#1a7a4a}
+.btn-danger{color:#A32D2D;border-color:#A32D2D;background:transparent}
+.btn-danger:hover{background:#FCEBEB}
+.btn-sm{padding:3px 9px;font-size:11px}
+.metrics-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:1rem 1.5rem;border-bottom:1px solid #e0dedd;background:#fff;flex-shrink:0}
+.mc{background:#f7f7f5;border-radius:8px;padding:.8rem 1rem;border:1px solid #e8e8e5}
+.mc-label{font-size:10px;color:#888;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.mc-val{font-size:20px;font-weight:600}
+.mv-blue{color:#1e5fa5}.mv-green{color:#1a7a4a}.mv-amber{color:#b05c00}.mv-red{color:#A32D2D}
+.table-wrap{flex:1;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;padding:7px 10px;font-weight:600;font-size:10px;color:#fff;background:#1e2a38;white-space:nowrap;position:sticky;top:0;z-index:2;text-transform:uppercase;letter-spacing:.03em}
+th.num,td.num{text-align:right}
+td{padding:7px 10px;border-bottom:1px solid #eae9e6;white-space:nowrap;vertical-align:middle}
+tr:hover td{background:#f5f5f2}
+.tbl-big{min-width:1800px}.tbl-mid{min-width:1000px}.tbl-sm{min-width:600px}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.bg-green{background:#d4edda;color:#155724}.bg-red{background:#f8d7da;color:#721c24}
+.bg-amber{background:#fff3cd;color:#856404}.bg-blue{background:#d1ecf1;color:#0c5460}
+.bg-gray{background:#e2e3e5;color:#383d41}.bg-purple{background:#e2d9f3;color:#4a2c7a}
+.bg-teal{background:#d2f4ea;color:#0a5940}
+.card{background:#fff;border-radius:8px;border:1px solid #e0dedd;padding:1.25rem;margin-bottom:1rem}
+.card-title{font-size:12px;font-weight:600;color:#1e2a38;margin-bottom:.9rem;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #1e2a38;padding-bottom:.5rem}
+.sec-label{font-size:10px;font-weight:600;color:#1e2a38;text-transform:uppercase;letter-spacing:.05em;margin:1rem 0 .5rem;padding-bottom:4px;border-bottom:2px solid #1e2a38}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;color:#555;font-weight:500}
+.fg input,.fg select{padding:6px 9px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;color:#1a1a1a;font-family:inherit;width:100%}
+.fg input:focus,.fg select:focus{outline:none;border-color:#1e2a38}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.span2{grid-column:span 2}.span3{grid-column:1/-1}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:flex-start;justify-content:center;padding:3vh 0 2vh;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:10px;padding:1.5rem;width:720px;max-width:96vw;margin:auto;border:1px solid #ccc}
+.modal.wide{width:820px}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:2px solid #1e2a38}
+.modal-ttl{font-size:14px;font-weight:700;color:#1e2a38;text-transform:uppercase}
+.x-btn{cursor:pointer;font-size:18px;color:#888;background:none;border:none}
+.modal-ftr{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:1px solid #eee}
+.total-preview{background:#1e2a38;border-radius:6px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.total-label{font-size:11px;color:rgba(255,255,255,0.7)}
+.total-val{font-size:22px;font-weight:700;color:#fff}
+.avatar{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:#1e2a38;color:#fff;flex-shrink:0}
+.row-actions{display:flex;gap:4px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #eee;font-size:12px}
+.info-row:last-child{border-bottom:none}
+.info-key{color:#888}
+.empty{text-align:center;padding:3rem;color:#aaa;font-size:12px}
+.nombre-cell{display:flex;align-items:center;gap:8px}
+.quincena-tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:600;background:#1e2a38;color:#fff}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1e2a38;color:#fff;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s;pointer-events:none;max-width:320px}
+.toast.show{opacity:1}
+.toast.err{background:#A32D2D}
+.loading-row td{text-align:center;padding:2.5rem;color:#888;font-size:12px}
+.sync-btn{display:flex;align-items:center;gap:5px;font-size:11px;color:#888;cursor:pointer;background:none;border:1px solid #ddd;padding:4px 9px;border-radius:5px}
+.sync-btn:hover{background:#f0f0ee;color:#1e2a38}
+.progress-bar{position:fixed;top:0;left:0;right:0;height:3px;background:#4a9eff;z-index:9999;transform:scaleX(0);transform-origin:left;transition:transform .3s}
+</style>
+</head>
+<body>
+<div class="progress-bar" id="pbar"></div>
+<div class="app">
+
+<div class="sidebar">
+  <div class="logo"><div class="logo-title">MG Decor</div><div class="logo-sub">Control de nómina</div></div>
+  <div class="nav-section">Principal</div>
+  <div class="nav-item active" onclick="nav(this,'dashboard')">▦ Dashboard</div>
+  <div class="nav-item" onclick="nav(this,'ingresos')">📥 Ingresos</div>
+  <div class="nav-section">Registros</div>
+  <div class="nav-item" onclick="nav(this,'empleados')">👷 Trabajadores</div>
+  <div class="nav-item" onclick="nav(this,'pagos')">💰 Pagos</div>
+  <div class="nav-item" onclick="nav(this,'adelantos')">📤 Adelantos</div>
+  <div class="nav-item" onclick="nav(this,'deudas')">💳 Deudas</div>
+  <div class="nav-section">Análisis</div>
+  <div class="nav-item" onclick="nav(this,'reportes')">📊 Reportes</div>
+</div>
+
+<div class="main">
+<div class="topbar">
+  <div><div class="topbar-title" id="top-title">Dashboard</div><div class="topbar-sub" id="top-sub">Conectando a Baserow...</div></div>
+  <button class="sync-btn" onclick="syncAll()">↺ Sincronizar</button>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page-scroll active" id="page-dashboard">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem">
+    <div class="mc"><div class="mc-label">Trabajadores</div><div class="mc-val mv-blue" id="d-trab">—</div></div>
+    <div class="mc"><div class="mc-label">Proyectos</div><div class="mc-val mv-blue" id="d-proy">—</div></div>
+    <div class="mc"><div class="mc-label">Total pagado</div><div class="mc-val mv-green" id="d-pagado">—</div></div>
+    <div class="mc"><div class="mc-label">ADE pendiente</div><div class="mc-val mv-amber" id="d-ade">—</div></div>
+    <div class="mc"><div class="mc-label">Deudas activas</div><div class="mc-val mv-red" id="d-deudas">—</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+    <div class="card"><div class="card-title">Pagos por proyecto</div><div id="d-proy-lista"><div class="empty">Cargando...</div></div></div>
+    <div class="card"><div class="card-title">Últimos pagos</div><div id="d-pagos-lista"><div class="empty">Cargando...</div></div></div>
+  </div>
+  <div class="card"><div class="card-title">Adelantos pendientes por cobrar</div><div id="d-ade-lista"><div class="empty">Cargando...</div></div></div>
+</div>
+
+<!-- INGRESOS -->
+<div class="page" id="page-ingresos">
+  <div class="toolbar">
+    <input class="search-box" placeholder="Buscar nombre o proyecto..." oninput="filtrar('ingresos',this.value)">
+    <select class="filter-sel" onchange="filtrarCampo('ingresos','Proyecto',this.value)" id="fil-ing-proy"><option value="">Todos los proyectos</option></select>
+    <span style="font-size:11px;color:#888" id="ing-count"></span>
+    <div style="margin-left:auto"><button class="btn btn-primary" onclick="abrirModal('ingreso')">+ Nuevo</button></div>
+  </div>
+  <div class="table-wrap"><table class="tbl-mid">
+    <thead><tr><th>ID</th><th>Proyecto</th><th>Arquitecto</th><th>F. Ingreso</th><th>Trabajador</th><th>Estado</th><th></th></tr></thead>
+    <tbody id="tabla-ingresos"><tr class="loading-row"><td colspan="7">Cargando desde Baserow...</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- EMPLEADOS -->
+<div class="page" id="page-empleados">
+  <div class="toolbar">
+    <input class="search-box" placeholder="Buscar nombre o documento..." oninput="filtrar('empleados',this.value)">
+    <select class="filter-sel" onchange="filtrarCampo('empleados','Etapa',this.value)">
+      <option value="">Todos</option><option>Contratado</option><option>Activo</option><option>Retirado</option>
+    </select>
+    <span style="font-size:11px;color:#888" id="emp-count"></span>
+    <div style="margin-left:auto"><button class="btn btn-primary" onclick="abrirModal('empleado')">+ Nuevo</button></div>
+  </div>
+  <div class="table-wrap"><table class="tbl-big">
+    <thead><tr>
+      <th>Nombres</th><th>Tipo doc</th><th># Doc</th><th>Fecha nac</th><th>Fecha exp</th>
+      <th>Estado civil</th><th>Dirección</th><th>Barrio</th><th>Celular</th><th>Correo</th>
+      <th>Fondo pensión</th><th>EPS</th><th>Escolaridad</th><th>Vulnerabilidad</th><th>Etnia</th>
+      <th>F. Ingreso</th><th>F. Retiro</th><th>Etapa</th><th></th>
+    </tr></thead>
+    <tbody id="tabla-empleados"><tr class="loading-row"><td colspan="19">Cargando desde Baserow...</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- PAGOS -->
+<div class="page" id="page-pagos">
+  <div class="metrics-row" id="pagos-metrics">
+    <div class="mc"><div class="mc-label">Total pagado</div><div class="mc-val mv-blue" id="pm-total">—</div></div>
+    <div class="mc"><div class="mc-label">Descuentos</div><div class="mc-val mv-red" id="pm-desc">—</div></div>
+    <div class="mc"><div class="mc-label">Completos</div><div class="mc-val mv-green" id="pm-compl">—</div></div>
+    <div class="mc"><div class="mc-label">Pendientes</div><div class="mc-val mv-amber" id="pm-pend">—</div></div>
+  </div>
+  <div class="toolbar">
+    <input class="search-box" placeholder="Buscar nombre o proyecto..." oninput="filtrar('pagos',this.value)">
+    <select class="filter-sel" onchange="filtrarCampo('pagos','Estado',this.value)">
+      <option value="">Todos los estados</option>
+      <option>COMPLETO</option><option>PENDIENTE</option><option>ADELANTO</option>
+      <option>MANO DE OBRA</option><option>MATERIAL</option><option>PAGO</option><option>PAGO TOTAL</option>
+    </select>
+    <select class="filter-sel" onchange="filtrarCampo('pagos','Proyecto',this.value)" id="fil-pago-proy"><option value="">Todos los proyectos</option></select>
+    <span style="font-size:11px;color:#888" id="pagos-count"></span>
+    <div style="margin-left:auto"><button class="btn btn-primary" onclick="abrirModal('pago')">+ Nuevo</button></div>
+  </div>
+  <div class="table-wrap"><table class="tbl-mid">
+    <thead><tr>
+      <th style="min-width:150px">Nombre</th><th style="min-width:150px">Proyecto</th>
+      <th>Fecha</th><th>Quincena</th>
+      <th class="num">Desc. Abono</th><th class="num">Desc. Seguro</th>
+      <th class="num">Total Q</th><th>Estado</th><th></th>
+    </tr></thead>
+    <tbody id="tabla-pagos"><tr class="loading-row"><td colspan="9">Cargando desde Baserow...</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- ADELANTOS -->
+<div class="page" id="page-adelantos">
+  <div class="toolbar">
+    <input class="search-box" placeholder="Buscar arquitecto o proyecto..." oninput="filtrar('adelantos',this.value)">
+    <select class="filter-sel" onchange="filtrarCampo('adelantos','Proyecto',this.value)" id="fil-ade-proy"><option value="">Todos los proyectos</option></select>
+    <span style="font-size:11px;color:#888" id="ade-count"></span>
+    <div style="margin-left:auto"><button class="btn btn-primary" onclick="abrirModal('adelanto')">+ Nuevo</button></div>
+  </div>
+  <div class="table-wrap"><table class="tbl-mid">
+    <thead><tr>
+      <th>Arquitecto</th><th style="min-width:150px">Proyecto</th><th>Nombre</th>
+      <th>Descripción</th><th>F. Inicio</th><th>F. Corte</th>
+      <th class="num">Valor corte</th><th class="num">Total abonado</th>
+      <th class="num">Total proyecto</th><th class="num">Pendiente</th>
+      <th>Observaciones</th><th></th>
+    </tr></thead>
+    <tbody id="tabla-adelantos"><tr class="loading-row"><td colspan="12">Cargando desde Baserow...</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- DEUDAS -->
+<div class="page" id="page-deudas">
+  <div class="metrics-row">
+    <div class="mc"><div class="mc-label">Total prestado</div><div class="mc-val mv-blue" id="dm-total">—</div></div>
+    <div class="mc"><div class="mc-label">Total abonado</div><div class="mc-val mv-green" id="dm-abonado">—</div></div>
+    <div class="mc"><div class="mc-label">Saldo pendiente</div><div class="mc-val mv-red" id="dm-saldo">—</div></div>
+    <div class="mc"><div class="mc-label">Deudas activas</div><div class="mc-val mv-amber" id="dm-activas">—</div></div>
+  </div>
+  <div class="toolbar">
+    <input class="search-box" placeholder="Buscar empleado o descripción..." oninput="filtrar('deudas',this.value)">
+    <select class="filter-sel" onchange="filtrarCampo('deudas','Empleado',this.value)" id="fil-deuda-emp"><option value="">Todos</option></select>
+    <span style="font-size:11px;color:#888" id="deudas-count"></span>
+    <div style="margin-left:auto"><button class="btn btn-primary" onclick="abrirModal('deuda')">+ Nueva</button></div>
+  </div>
+  <div class="table-wrap"><table class="tbl-sm">
+    <thead><tr>
+      <th style="min-width:160px">Empleado</th><th>F. Préstamo</th>
+      <th class="num">Cantidad</th><th>Descripción</th>
+      <th class="num">Abonos</th><th class="num">Saldo</th><th>F. Abono</th><th></th>
+    </tr></thead>
+    <tbody id="tabla-deudas"><tr class="loading-row"><td colspan="8">Cargando desde Baserow...</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- REPORTES -->
+<div class="page-scroll" id="page-reportes">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem">
+    <div class="mc"><div class="mc-label">Total pagos</div><div class="mc-val mv-blue" id="rm-pagos">—</div></div>
+    <div class="mc"><div class="mc-label">Deudas activas</div><div class="mc-val mv-red" id="rm-deudas">—</div></div>
+    <div class="mc"><div class="mc-label">ADE pendiente</div><div class="mc-val mv-amber" id="rm-ade">—</div></div>
+    <div class="mc"><div class="mc-label">Trabajadores</div><div class="mc-val mv-blue" id="rm-trab">—</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+    <div class="card"><div class="card-title">Pagos por proyecto</div><div id="rep-proy"></div></div>
+    <div class="card"><div class="card-title">Deudas por trabajador</div><div id="rep-deu"></div></div>
+  </div>
+  <div class="card"><div class="card-title">Estados de pago</div><div id="rep-estados"></div></div>
+  <div class="card"><div class="card-title">ADE pendiente por cobrar</div><div id="rep-ade2"></div></div>
+</div>
+</div></div>
+
+<!-- MODALES -->
+<div class="modal-bg" id="modal-ingreso">
+<div class="modal"><div class="modal-hdr"><span class="modal-ttl" id="ttl-ingreso">Nuevo ingreso</span><button class="x-btn" onclick="cm('ingreso')">✕</button></div>
+  <div class="g3">
+    <div class="fg"><label>ID Contrato</label><input id="i-id"></div>
+    <div class="fg span2"><label>Proyecto</label><input id="i-proyecto"></div>
+    <div class="fg span2"><label>Nombre trabajador</label><input id="i-nombre"></div>
+    <div class="fg"><label>Arquitecto</label><input id="i-arq"></div>
+    <div class="fg"><label>Fecha ingreso</label><input id="i-fecha" type="date"></div>
+    <div class="fg"><label>Estado</label><select id="i-estado"><option>Activo</option><option>Finalizado</option><option>En pausa</option></select></div>
+  </div>
+  <div class="modal-ftr"><button class="btn" onclick="cm('ingreso')">Cancelar</button><button class="btn btn-primary" id="btn-ingreso" onclick="guardar('ingreso')">Guardar</button></div>
+</div></div>
+
+<div class="modal-bg" id="modal-empleado">
+<div class="modal wide"><div class="modal-hdr"><span class="modal-ttl" id="ttl-empleado">Nuevo trabajador</span><button class="x-btn" onclick="cm('empleado')">✕</button></div>
+  <div class="sec-label">Identificación</div>
+  <div class="g3">
+    <div class="fg span2"><label>Nombres completos</label><input id="e-nombre"></div>
+    <div class="fg"><label>Tipo doc</label><select id="e-tipodoc"><option>CEDULA</option><option>PPT</option><option>PASAPORTE</option><option>TARJETA IDENTIDAD</option></select></div>
+    <div class="fg"><label># Documento</label><input id="e-doc"></div>
+    <div class="fg"><label>Fecha nac</label><input id="e-fnac" type="date"></div>
+    <div class="fg"><label>Fecha exp</label><input id="e-fexp" type="date"></div>
+    <div class="fg"><label>Estado civil</label><select id="e-civil"><option>SOLTERO</option><option>CASADO</option><option>UNION LIBRE</option><option>DIVORCIADO</option><option>VIUDO</option></select></div>
+  </div>
+  <div class="sec-label">Contacto</div>
+  <div class="g3">
+    <div class="fg span2"><label>Dirección</label><input id="e-dir"></div>
+    <div class="fg"><label>Barrio</label><input id="e-barrio"></div>
+    <div class="fg"><label>Celular</label><input id="e-cel"></div>
+    <div class="fg span2"><label>Correo</label><input id="e-correo" type="email"></div>
+  </div>
+  <div class="sec-label">Seguridad social y caracterización</div>
+  <div class="g3">
+    <div class="fg"><label>Fondo pensión</label><input id="e-pension"></div>
+    <div class="fg"><label>EPS</label><input id="e-eps"></div>
+    <div class="fg"><label>Escolaridad</label><select id="e-escolaridad"><option>NINGUNO</option><option>BASICA</option><option>BACHILLERATO</option><option>TECNICO</option><option>TECNOLOGO</option><option>UNIVERSITARIO</option></select></div>
+    <div class="fg"><label>Vulnerabilidad</label><select id="e-vul"><option>NO APLICA</option><option>VICTIMA CONFLICTO</option><option>DISCAPACIDAD</option><option>ADULTO MAYOR</option><option>JEFE HOGAR MUJER</option></select></div>
+    <div class="fg"><label>Etnia</label><select id="e-etnia"><option>NO APLICA</option><option>INDIGENA</option><option>AFROCOLOMBIANO</option><option>RAIZAL</option><option>ROM / GITANO</option></select></div>
+    <div class="fg"><label>Etapa</label><select id="e-etapa"><option>Contratado</option><option>Activo</option><option>Retirado</option></select></div>
+    <div class="fg"><label>F. Ingreso</label><input id="e-fingreso" type="date"></div>
+    <div class="fg"><label>F. Retiro</label><input id="e-fretiro" type="date"></div>
+  </div>
+  <div class="modal-ftr"><button class="btn" onclick="cm('empleado')">Cancelar</button><button class="btn btn-primary" id="btn-empleado" onclick="guardar('empleado')">Guardar trabajador</button></div>
+</div></div>
+
+<div class="modal-bg" id="modal-pago">
+<div class="modal"><div class="modal-hdr"><span class="modal-ttl" id="ttl-pago">Nuevo pago</span><button class="x-btn" onclick="cm('pago')">✕</button></div>
+  <div class="g2">
+    <div class="fg"><label>Nombre trabajador</label><input id="pa-nombre"></div>
+    <div class="fg"><label>Proyecto</label><input id="pa-proyecto"></div>
+  </div>
+  <div class="g3" style="margin-top:10px">
+    <div class="fg"><label>Fecha</label><input id="pa-fecha" type="date"></div>
+    <div class="fg"><label>Quincena</label><select id="pa-quincena"><option>QUINCENA 1</option><option>QUINCENA 2</option><option>QUINCENA 3</option><option>QUINCENA 4</option><option>QUINCENA 5</option><option>QUINCENA 6</option><option>QUINCENA 7</option><option>QUINCENA 8</option><option>QUINCENA 9</option><option>QUINCENA 10</option></select></div>
+    <div class="fg"><label>Valor quincena ($)</label><input id="pa-valor" type="number" value="0" oninput="calcQ()"></div>
+    <div class="fg"><label>Desc. Abono ($)</label><input id="pa-desca" type="number" value="0" oninput="calcQ()"></div>
+    <div class="fg"><label>Desc. Seguro ($)</label><input id="pa-descs" type="number" value="0" oninput="calcQ()"></div>
+    <div class="fg"><label>Estado</label><select id="pa-estado"><option>COMPLETO</option><option>PENDIENTE</option><option>ADELANTO</option><option>MANO DE OBRA</option><option>MATERIAL</option><option>PAGO</option><option>PAGO TOTAL</option></select></div>
+  </div>
+  <div class="total-preview" style="margin-top:10px"><span class="total-label">Total Q</span><span class="total-val" id="pa-total">$0</span></div>
+  <div class="modal-ftr"><button class="btn" onclick="cm('pago')">Cancelar</button><button class="btn btn-primary" id="btn-pago" onclick="guardar('pago')">Guardar pago</button></div>
+</div></div>
+
+<div class="modal-bg" id="modal-adelanto">
+<div class="modal wide"><div class="modal-hdr"><span class="modal-ttl" id="ttl-adelanto">Nuevo adelanto</span><button class="x-btn" onclick="cm('adelanto')">✕</button></div>
+  <div class="g3">
+    <div class="fg"><label>Arquitecto</label><input id="a-arq"></div>
+    <div class="fg span2"><label>Proyecto</label><input id="a-proyecto"></div>
+    <div class="fg"><label>Nombre</label><input id="a-nombre"></div>
+    <div class="fg span2"><label>Descripción / Corte</label><input id="a-desc"></div>
+    <div class="fg"><label>Fecha inicio</label><input id="a-finicio" type="date"></div>
+    <div class="fg"><label>Fecha corte</label><input id="a-fcorte" type="date"></div>
+    <div class="fg"><label>Valor corte ($)</label><input id="a-vcorte" type="number" value="0"></div>
+    <div class="fg"><label>Total abonado ($)</label><input id="a-abonado" type="number" value="0"></div>
+    <div class="fg"><label>Total proyecto ($)</label><input id="a-total" type="number" value="0"></div>
+    <div class="fg span3"><label>Observaciones</label><input id="a-obs"></div>
+  </div>
+  <div class="modal-ftr"><button class="btn" onclick="cm('adelanto')">Cancelar</button><button class="btn btn-primary" id="btn-adelanto" onclick="guardar('adelanto')">Guardar adelanto</button></div>
+</div></div>
+
+<div class="modal-bg" id="modal-deuda">
+<div class="modal"><div class="modal-hdr"><span class="modal-ttl" id="ttl-deuda">Nueva deuda</span><button class="x-btn" onclick="cm('deuda')">✕</button></div>
+  <div class="g2">
+    <div class="fg"><label>Empleado</label><input id="de-emp"></div>
+    <div class="fg"><label>Fecha préstamo</label><input id="de-fecha" type="date"></div>
+    <div class="fg"><label>Cantidad ($)</label><input id="de-cantidad" type="number" value="0"></div>
+    <div class="fg"><label>Abonos ($)</label><input id="de-abonos" type="number" value="0"></div>
+    <div class="fg"><label>Fecha abono</label><input id="de-fabono" type="date"></div>
+    <div class="fg span2"><label>Descripción</label><input id="de-desc" placeholder="PRESTAMO, HERRAMIENTA..."></div>
+  </div>
+  <div class="modal-ftr"><button class="btn" onclick="cm('deuda')">Cancelar</button><button class="btn btn-primary" id="btn-deuda" onclick="guardar('deuda')">Guardar</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══ CONFIG ══ */
+const BR_TOKEN = 'rBtCmMxMoQun5QOpds3Jmgf07QIOXIvi';
+const TABLES   = {empleados:885723,ingresos:885724,pagos:885725,adelantos:885726,deudas:885727};
+const BR       = 'https://api.baserow.io/api';
+
+/* ══ HELPERS ══ */
+const $    = id => document.getElementById(id);
+const fmt  = n  => (n==null||n===''||isNaN(+n)) ? '—' : '$'+Math.round(+n).toLocaleString('es-CO');
+const td   = () => new Date().toISOString().split('T')[0];
+const ini  = n  => (n||'?').split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase();
+const cm   = t  => $('modal-'+t).classList.remove('open');
+
+const PAGO_CLS = {'COMPLETO':'bg-green','PENDIENTE':'bg-amber','ADELANTO':'bg-blue','MANO DE OBRA':'bg-purple','MATERIAL':'bg-teal','PAGO':'bg-gray','PAGO TOTAL':'bg-green'};
+const ETAPA_CLS = {'Contratado':'bg-blue','Activo':'bg-green','Retirado':'bg-gray'};
+const bdg = (t,c) => `<span class="badge ${c||'bg-gray'}">${t||'—'}</span>`;
+
+function toast(msg,err=false){
+  const el=$('toast');el.textContent=msg;el.className='toast show'+(err?' err':'');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),3000);
+}
+function progress(v){$('pbar').style.transform=`scaleX(${v})`;}
+
+/* ══ CLAUDE → BASEROW PROXY ══
+   Usamos la API de Anthropic para hacer las llamadas a Baserow,
+   ya que fetch directo está bloqueado en el sandbox de Claude.
+*/
+async function brCall(method, path, body=null) {
+  const fullUrl = `${BR}${path}`;
+  const prompt = `Haz una llamada HTTP a Baserow y devuelve SOLO el JSON de respuesta sin ningún texto adicional, sin markdown, sin explicaciones.
+
+Método: ${method}
+URL: ${fullUrl}
+Headers: Authorization: Token ${BR_TOKEN}, Content-Type: application/json
+${body ? 'Body: ' + JSON.stringify(body) : 'Body: ninguno'}
+
+Responde ÚNICAMENTE con el JSON de la respuesta HTTP. Si es DELETE exitoso responde: {"deleted":true}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      messages: [{role:'user', content: prompt}]
+    })
+  });
+  if(!res.ok) throw new Error(`Claude API error ${res.status}`);
+  const d = await res.json();
+  const txt = d.content.map(b=>b.text||'').join('').trim();
+  // strip possible markdown fences
+  const clean = txt.replace(/^```(?:json)?\n?/,'').replace(/\n?```$/,'').trim();
+  try { return JSON.parse(clean); }
+  catch(e) { throw new Error('Respuesta inesperada: '+txt.slice(0,120)); }
+}
+
+async function brGet(tableKey) {
+  let url = `/database/rows/table/${TABLES[tableKey]}/?user_field_names=true&size=200`;
+  let all = [];
+  while(url) {
+    const d = await brCall('GET', url);
+    if(d.error) throw new Error(d.error+': '+(d.detail||''));
+    all = all.concat(d.results||[]);
+    // next page — strip the base URL
+    url = d.next ? d.next.replace(BR,'') : null;
+  }
+  return all;
+}
+async function brCreate(tableKey, fields) {
+  const d = await brCall('POST', `/database/rows/table/${TABLES[tableKey]}/?user_field_names=true`, fields);
+  if(d.error) throw new Error(d.error+': '+(d.detail||''));
+  return d;
+}
+async function brPatch(tableKey, rowId, fields) {
+  const d = await brCall('PATCH', `/database/rows/table/${TABLES[tableKey]}/${rowId}/?user_field_names=true`, fields);
+  if(d.error) throw new Error(d.error+': '+(d.detail||''));
+  return d;
+}
+async function brDelete(tableKey, rowId) {
+  const d = await brCall('DELETE', `/database/rows/table/${TABLES[tableKey]}/${rowId}/`);
+  if(d && d.error) throw new Error(d.error+': '+(d.detail||''));
+}
+
+/* ══ CACHE Y FILTROS ══ */
+const C = {empleados:[],ingresos:[],pagos:[],adelantos:[],deudas:[]};
+const F = {
+  empleados:{txt:'',Etapa:''},
+  ingresos:{txt:'',Proyecto:''},
+  pagos:{txt:'',Estado:'',Proyecto:''},
+  adelantos:{txt:'',Proyecto:''},
+  deudas:{txt:'',Empleado:''}
+};
+
+function filtrar(key,v){F[key].txt=v.toLowerCase();renderTabla(key);}
+function filtrarCampo(key,campo,v){F[key][campo]=v;renderTabla(key);}
+
+function aplicarFiltros(key){
+  const f=F[key];
+  return C[key].filter(r=>{
+    if(f.txt&&!Object.values(r).join(' ').toLowerCase().includes(f.txt))return false;
+    for(const [k,v] of Object.entries(f)) if(k!=='txt'&&v&&r[k]!==v) return false;
+    return true;
+  });
+}
+
+/* ══ LOAD ══ */
+async function cargar(key){
+  try{
+    const data = await brGet(key);
+    C[key]=data;
+    renderTabla(key);
+    if(key==='pagos') metricasPagos();
+    if(key==='deudas') metricasDeudas();
+    return data;
+  }catch(e){
+    toast('Error cargando '+key+': '+e.message,true);
+    const el=$('tabla-'+key);
+    if(el) el.innerHTML=`<tr class="loading-row"><td colspan="20" style="color:#A32D2D">Error: ${e.message}</td></tr>`;
+  }
+}
+
+/* ══ RENDER TABLAS ══ */
+function poblarSelect(selId, key, campo){
+  const sel=$(selId);if(!sel)return;
+  const cur=sel.value;
+  const vals=[...new Set(C[key].map(r=>r[campo]).filter(Boolean))].sort();
+  sel.innerHTML=`<option value="">Todos</option>`+vals.map(v=>`<option${v===cur?' selected':''}>${v}</option>`).join('');
+}
+function poblarSelectEmps(){
+  poblarSelect('fil-deuda-emp','deudas','Empleado');
+}
+
+function renderTabla(key){
+  const lista=aplicarFiltros(key);
+  const n=lista.length,t=C[key].length;
+  const countEl=$(key==='ingresos'?'ing-count':key==='empleados'?'emp-count':key==='pagos'?'pagos-count':key==='adelantos'?'ade-count':'deudas-count');
+  if(countEl) countEl.textContent=n<t?`${n} de ${t} registros`:`${t} registros`;
+
+  if(key==='ingresos'){
+    poblarSelect('fil-ing-proy','ingresos','Proyecto');
+    $('tabla-ingresos').innerHTML=lista.map(r=>`<tr>
+      <td><b style="font-family:monospace">${r['ID Contrato']||'—'}</b></td>
+      <td style="font-weight:500">${r['Proyecto']||'—'}</td>
+      <td style="color:#888">${r['Arquitecto']||'—'}</td>
+      <td>${r['Fecha ingreso']||'—'}</td>
+      <td><div class="nombre-cell"><div class="avatar">${ini(r['Nombre trabajador'])}</div>${r['Nombre trabajador']||'—'}</div></td>
+      <td>${bdg(r['Estado'],r['Estado']==='Activo'?'bg-green':r['Estado']==='Finalizado'?'bg-gray':'bg-amber')}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-sm" onclick="editar('ingreso',${r.id})">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminar('ingresos',${r.id})">✕</button>
+      </div></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Sin registros</td></tr>';
+  }
+  if(key==='empleados'){
+    $('tabla-empleados').innerHTML=lista.map(r=>`<tr>
+      <td><div class="nombre-cell"><div class="avatar">${ini(r['Nombre'])}</div><b>${r['Nombre']||'—'}</b></div></td>
+      <td><b style="font-size:10px">${r['Tipo doc']||'—'}</b></td>
+      <td style="font-family:monospace">${r['# Documento']||'—'}</td>
+      <td>${r['Fecha nac']||'—'}</td><td>${r['Fecha exp']||'—'}</td><td>${r['Estado civil']||'—'}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis">${r['Dirección']||'—'}</td>
+      <td>${r['Barrio']||'—'}</td><td>${r['Celular']||'—'}</td>
+      <td style="color:#1e5fa5;max-width:140px;overflow:hidden;text-overflow:ellipsis">${r['Correo']||'—'}</td>
+      <td>${r['Fondo pensión']||'—'}</td><td>${r['EPS']||'—'}</td><td>${r['Escolaridad']||'—'}</td>
+      <td style="font-size:10px">${r['Vulnerabilidad']&&r['Vulnerabilidad']!=='NO APLICA'?r['Vulnerabilidad']:'—'}</td>
+      <td style="font-size:10px">${r['Etnia']&&r['Etnia']!=='NO APLICA'?r['Etnia']:'—'}</td>
+      <td>${r['Fecha ingreso']||'—'}</td><td>${r['Fecha retiro']||'—'}</td>
+      <td>${bdg(r['Etapa'],ETAPA_CLS[r['Etapa']])}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-sm" onclick="editar('empleado',${r.id})">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminar('empleados',${r.id})">✕</button>
+      </div></td></tr>`).join('')||'<tr><td colspan="19" class="empty">Sin trabajadores</td></tr>';
+  }
+  if(key==='pagos'){
+    poblarSelect('fil-pago-proy','pagos','Proyecto');
+    $('tabla-pagos').innerHTML=lista.map(r=>`<tr>
+      <td><div class="nombre-cell"><div class="avatar">${ini(r['Nombre'])}</div><b>${r['Nombre']||'—'}</b></div></td>
+      <td style="color:#555">${r['Proyecto']||'—'}</td>
+      <td>${r['Fecha']||'—'}</td>
+      <td><span class="quincena-tag">${(r['Quincena']||'').replace('QUINCENA ','Q')}</span></td>
+      <td class="num" style="color:#A32D2D">${+r['Desc abono']>0?fmt(r['Desc abono']):'—'}</td>
+      <td class="num" style="color:#A32D2D">${+r['Desc seguro']>0?fmt(r['Desc seguro']):'—'}</td>
+      <td class="num" style="font-weight:700;color:#1e5fa5">${fmt(r['Total Q'])}</td>
+      <td>${bdg(r['Estado'],PAGO_CLS[r['Estado']])}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-sm" onclick="editar('pago',${r.id})">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminar('pagos',${r.id})">✕</button>
+      </div></td></tr>`).join('')||'<tr><td colspan="9" class="empty">Sin pagos</td></tr>';
+  }
+  if(key==='adelantos'){
+    poblarSelect('fil-ade-proy','adelantos','Proyecto');
+    $('tabla-adelantos').innerHTML=lista.map(r=>`<tr>
+      <td style="font-weight:600">${r['Arquitecto']||'—'}</td>
+      <td style="font-weight:500">${r['Proyecto']||'—'}</td>
+      <td>${r['Nombre']||'—'}</td>
+      <td style="font-weight:500">${r['Descripción']||'—'}</td>
+      <td>${r['Fecha inicio']||'—'}</td><td>${r['Fecha corte']||'—'}</td>
+      <td class="num">${fmt(r['Valor corte'])}</td>
+      <td class="num">${+r['Total abonado']>0?fmt(r['Total abonado']):'—'}</td>
+      <td class="num">${+r['Total proyecto']>0?fmt(r['Total proyecto']):'—'}</td>
+      <td class="num" style="font-weight:700;color:${+r['Pendiente']>0?'#b05c00':'#1a7a4a'}">${+r['Pendiente']>0?fmt(r['Pendiente']):'—'}</td>
+      <td style="max-width:180px;white-space:normal;font-size:10px;color:#666">${r['Observaciones']||'—'}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-sm" onclick="editar('adelanto',${r.id})">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminar('adelantos',${r.id})">✕</button>
+      </div></td></tr>`).join('')||'<tr><td colspan="12" class="empty">Sin adelantos</td></tr>';
+  }
+  if(key==='deudas'){
+    poblarSelectEmps();
+    $('tabla-deudas').innerHTML=lista.map(r=>`<tr>
+      <td style="font-weight:600">${r['Empleado']||'—'}</td>
+      <td>${r['Fecha préstamo']||'—'}</td>
+      <td class="num">${fmt(r['Cantidad'])}</td>
+      <td style="color:#555">${r['Descripción']||'—'}</td>
+      <td class="num" style="color:#1a7a4a">${+r['Abonos']>0?fmt(r['Abonos']):'—'}</td>
+      <td class="num" style="font-weight:700;color:${+r['Saldo']>0?'#A32D2D':'#1a7a4a'}">${fmt(r['Saldo'])}</td>
+      <td>${r['Fecha abono']||'—'}</td>
+      <td><div class="row-actions">
+        ${+r['Saldo']>0?`<button class="btn btn-sm btn-success" onclick="abonar(${r.id},${r['Saldo']},${r['Abonos']||0},${r['Cantidad']||0})">Abonar</button>`:''}
+        <button class="btn btn-sm" onclick="editar('deuda',${r.id})">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminar('deudas',${r.id})">✕</button>
+      </div></td></tr>`).join('')||'<tr><td colspan="8" class="empty">Sin deudas</td></tr>';
+  }
+}
+
+/* ══ MÉTRICAS ══ */
+function metricasPagos(){
+  const p=C.pagos;
+  $('pm-total').textContent=fmt(p.reduce((s,r)=>s+(+r['Total Q']||0),0));
+  $('pm-desc').textContent=fmt(p.reduce((s,r)=>s+(+r['Desc abono']||0)+(+r['Desc seguro']||0),0));
+  $('pm-compl').textContent=p.filter(r=>r['Estado']==='COMPLETO').length;
+  $('pm-pend').textContent=p.filter(r=>r['Estado']==='PENDIENTE').length;
+}
+function metricasDeudas(){
+  const d=C.deudas;
+  $('dm-total').textContent=fmt(d.reduce((s,r)=>s+(+r['Cantidad']||0),0));
+  $('dm-abonado').textContent=fmt(d.reduce((s,r)=>s+(+r['Abonos']||0),0));
+  $('dm-saldo').textContent=fmt(d.reduce((s,r)=>s+(+r['Saldo']||0),0));
+  $('dm-activas').textContent=d.filter(r=>+r['Saldo']>0).length;
+}
+
+/* ══ DASHBOARD ══ */
+function renderDash(){
+  $('d-trab').textContent=C.empleados.length||0;
+  const proyects=new Set([...C.ingresos.map(r=>r['Proyecto']),...C.pagos.map(r=>r['Proyecto'])].filter(Boolean));
+  $('d-proy').textContent=proyects.size;
+  $('d-pagado').textContent=fmt(C.pagos.reduce((s,r)=>s+(+r['Total Q']||0),0));
+  $('d-ade').textContent=fmt(C.adelantos.reduce((s,r)=>s+(+r['Pendiente']||0),0));
+  $('d-deudas').textContent=fmt(C.deudas.reduce((s,r)=>s+(+r['Saldo']||0),0));
+  const cp={};C.pagos.forEach(r=>{const p=r['Proyecto'];if(p)cp[p]=(cp[p]||0)+(+r['Total Q']||0)});
+  $('d-proy-lista').innerHTML=Object.entries(cp).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([p,v])=>
+    `<div class="info-row"><span class="info-key">${p}</span><span style="font-weight:600">${fmt(v)}</span></div>`
+  ).join('')||'<div class="empty">Sin datos</div>';
+  $('d-pagos-lista').innerHTML=C.pagos.slice(-6).reverse().map(r=>
+    `<div class="info-row"><span class="info-key">${r['Nombre']||'—'} · ${r['Proyecto']||'—'}</span><span style="font-weight:600">${fmt(r['Total Q'])} ${bdg(r['Estado'],PAGO_CLS[r['Estado']])}</span></div>`
+  ).join('')||'<div class="empty">Sin pagos</div>';
+  $('d-ade-lista').innerHTML=C.adelantos.filter(r=>+r['Pendiente']>0).map(r=>
+    `<div class="info-row"><span class="info-key">${r['Arquitecto']||''} · ${r['Proyecto']||''} · ${r['Descripción']||''}</span><span style="font-weight:600;color:#b05c00">${fmt(r['Pendiente'])}</span></div>`
+  ).join('')||'<div class="empty" style="padding:1rem">Sin adelantos pendientes</div>';
+}
+
+function renderReportes(){
+  $('rm-pagos').textContent=fmt(C.pagos.reduce((s,r)=>s+(+r['Total Q']||0),0));
+  $('rm-deudas').textContent=fmt(C.deudas.reduce((s,r)=>s+(+r['Saldo']||0),0));
+  $('rm-ade').textContent=fmt(C.adelantos.reduce((s,r)=>s+(+r['Pendiente']||0),0));
+  $('rm-trab').textContent=C.empleados.length;
+  const cp={};C.pagos.forEach(r=>{const p=r['Proyecto'];if(p)cp[p]=(cp[p]||0)+(+r['Total Q']||0)});
+  $('rep-proy').innerHTML=Object.entries(cp).sort((a,b)=>b[1]-a[1]).map(([p,v])=>
+    `<div class="info-row"><span class="info-key">${p}</span><span style="font-weight:600">${fmt(v)}</span></div>`
+  ).join('')||'<div class="empty">Sin datos</div>';
+  const cd={};C.deudas.filter(r=>+r['Saldo']>0).forEach(r=>{cd[r['Empleado']]=(cd[r['Empleado']]||0)+(+r['Saldo']||0)});
+  $('rep-deu').innerHTML=Object.entries(cd).sort((a,b)=>b[1]-a[1]).map(([e,v])=>
+    `<div class="info-row"><span class="info-key">${e}</span><span style="font-weight:600;color:#A32D2D">${fmt(v)}</span></div>`
+  ).join('')||'<div class="empty">Sin deudas</div>';
+  const ce={};C.pagos.forEach(r=>{ce[r['Estado']]=(ce[r['Estado']]||0)+1});
+  $('rep-estados').innerHTML=Object.entries(ce).map(([e,n])=>
+    `<div class="info-row"><span class="info-key">${bdg(e,PAGO_CLS[e])}</span><span style="font-weight:600">${n}</span></div>`
+  ).join('')||'<div class="empty">Sin pagos</div>';
+  $('rep-ade2').innerHTML=C.adelantos.filter(r=>+r['Pendiente']>0).map(r=>
+    `<div class="info-row"><span class="info-key">${r['Arquitecto']||''} · ${r['Proyecto']||''} · ${r['Descripción']||''}</span><span style="font-weight:600;color:#b05c00">${fmt(r['Pendiente'])}</span></div>`
+  ).join('')||'<div class="empty">Sin adelantos pendientes</div>';
+}
+
+/* ══ NAV ══ */
+const META={dashboard:{t:'Dashboard',s:'Resumen general'},ingresos:{t:'Ingresos / Contratos',s:'Trabajadores por proyecto'},empleados:{t:'Trabajadores',s:'Base de datos de personal'},pagos:{t:'Pagos',s:'Registro por quincena'},adelantos:{t:'Adelantos (ADE)',s:'Cortes por arquitecto'},deudas:{t:'Deudas / Préstamos',s:'Control de préstamos'},reportes:{t:'Reportes',s:'Análisis consolidado'}};
+
+function nav(el,page){
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.page,.page-scroll').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  $('page-'+page).classList.add('active');
+  const m=META[page]||{};
+  $('top-title').textContent=m.t||page;
+  $('top-sub').textContent=m.s||'';
+  if(page==='dashboard') renderDash();
+  else if(page==='reportes') renderReportes();
+  else if(!C[page]?.length) cargar(page);
+  else renderTabla(page);
+}
+
+/* ══ MODALES ══ */
+let editId={};
+
+function abrirModal(t){
+  editId[t]=null;
+  $('ttl-'+t).textContent={ingreso:'Nuevo ingreso',empleado:'Nuevo trabajador',pago:'Nuevo pago',adelanto:'Nuevo adelanto',deuda:'Nueva deuda'}[t];
+  limpiar(t);
+  if(t==='pago'){$('pa-fecha').value=td();calcQ();}
+  if(t==='ingreso') $('i-fecha').value=td();
+  $('modal-'+t).classList.add('open');
+}
+
+function limpiar(t){
+  const f={ingreso:['i-id','i-proyecto','i-nombre','i-arq'],empleado:['e-nombre','e-doc','e-dir','e-barrio','e-cel','e-correo','e-pension','e-eps','e-fnac','e-fexp','e-fingreso','e-fretiro'],pago:['pa-nombre','pa-proyecto'],adelanto:['a-arq','a-proyecto','a-nombre','a-desc','a-obs'],deuda:['de-emp','de-desc']};
+  const n={pago:['pa-valor','pa-desca','pa-descs'],adelanto:['a-vcorte','a-abonado','a-total'],deuda:['de-cantidad','de-abonos']};
+  (f[t]||[]).forEach(id=>{if($(id))$(id).value='';});
+  (n[t]||[]).forEach(id=>{if($(id))$(id).value=0;});
+}
+
+function editar(t,id){
+  const map={ingreso:'ingresos',empleado:'empleados',pago:'pagos',adelanto:'adelantos',deuda:'deudas'};
+  const r=C[map[t]].find(x=>x.id===id);if(!r)return;
+  editId[t]=id;
+  $('ttl-'+t).textContent={ingreso:'Editar ingreso',empleado:'Editar trabajador',pago:'Editar pago',adelanto:'Editar adelanto',deuda:'Editar deuda'}[t];
+  if(t==='ingreso'){$('i-id').value=r['ID Contrato']||'';$('i-proyecto').value=r['Proyecto']||'';$('i-nombre').value=r['Nombre trabajador']||'';$('i-arq').value=r['Arquitecto']||'';$('i-fecha').value=r['Fecha ingreso']||'';$('i-estado').value=r['Estado']||'Activo';}
+  if(t==='empleado'){$('e-nombre').value=r['Nombre']||'';$('e-tipodoc').value=r['Tipo doc']||'CEDULA';$('e-doc').value=r['# Documento']||'';$('e-fnac').value=r['Fecha nac']||'';$('e-fexp').value=r['Fecha exp']||'';$('e-civil').value=r['Estado civil']||'SOLTERO';$('e-dir').value=r['Dirección']||'';$('e-barrio').value=r['Barrio']||'';$('e-cel').value=r['Celular']||'';$('e-correo').value=r['Correo']||'';$('e-pension').value=r['Fondo pensión']||'';$('e-eps').value=r['EPS']||'';$('e-escolaridad').value=r['Escolaridad']||'BASICA';$('e-vul').value=r['Vulnerabilidad']||'NO APLICA';$('e-etnia').value=r['Etnia']||'NO APLICA';$('e-etapa').value=r['Etapa']||'Contratado';$('e-fingreso').value=r['Fecha ingreso']||'';$('e-fretiro').value=r['Fecha retiro']||'';}
+  if(t==='pago'){$('pa-nombre').value=r['Nombre']||'';$('pa-proyecto').value=r['Proyecto']||'';$('pa-fecha').value=r['Fecha']||'';$('pa-quincena').value=r['Quincena']||'QUINCENA 1';$('pa-valor').value=r['Valor quincena']||0;$('pa-desca').value=r['Desc abono']||0;$('pa-descs').value=r['Desc seguro']||0;$('pa-estado').value=r['Estado']||'PENDIENTE';calcQ();}
+  if(t==='adelanto'){$('a-arq').value=r['Arquitecto']||'';$('a-proyecto').value=r['Proyecto']||'';$('a-nombre').value=r['Nombre']||'';$('a-desc').value=r['Descripción']||'';$('a-finicio').value=r['Fecha inicio']||'';$('a-fcorte').value=r['Fecha corte']||'';$('a-vcorte').value=r['Valor corte']||0;$('a-abonado').value=r['Total abonado']||0;$('a-total').value=r['Total proyecto']||0;$('a-obs').value=r['Observaciones']||'';}
+  if(t==='deuda'){$('de-emp').value=r['Empleado']||'';$('de-fecha').value=r['Fecha préstamo']||'';$('de-cantidad').value=r['Cantidad']||0;$('de-desc').value=r['Descripción']||'';$('de-abonos').value=r['Abonos']||0;$('de-fabono').value=r['Fecha abono']||'';}
+  $('modal-'+t).classList.add('open');
+}
+
+/* ══ GUARDAR ══ */
+function setBusy(t,on){
+  const b=$('btn-'+t);if(!b)return;
+  if(on){b._orig=b.innerHTML;b.disabled=true;b.innerHTML=`<span class="spinner"></span>Guardando...`;}
+  else{b.disabled=false;b.innerHTML=b._orig||'Guardar';}
+}
+
+async function guardar(t){
+  let fields={},tableKey='',req='';
+  if(t==='ingreso'){req=$('i-proyecto').value.trim();fields={'ID Contrato':$('i-id').value,'Proyecto':$('i-proyecto').value,'Nombre trabajador':$('i-nombre').value,'Arquitecto':$('i-arq').value,'Fecha ingreso':$('i-fecha').value||null,'Estado':$('i-estado').value};tableKey='ingresos';}
+  if(t==='empleado'){req=$('e-nombre').value.trim();fields={'Nombre':$('e-nombre').value.toUpperCase(),'Tipo doc':$('e-tipodoc').value,'# Documento':$('e-doc').value,'Fecha nac':$('e-fnac').value||null,'Fecha exp':$('e-fexp').value||null,'Estado civil':$('e-civil').value,'Dirección':$('e-dir').value,'Barrio':$('e-barrio').value,'Celular':$('e-cel').value,'Correo':$('e-correo').value,'Fondo pensión':$('e-pension').value,'EPS':$('e-eps').value,'Escolaridad':$('e-escolaridad').value,'Vulnerabilidad':$('e-vul').value,'Etnia':$('e-etnia').value,'Etapa':$('e-etapa').value,'Fecha ingreso':$('e-fingreso').value||null,'Fecha retiro':$('e-fretiro').value||null};tableKey='empleados';}
+  if(t==='pago'){req=$('pa-nombre').value.trim();const v=+$('pa-valor').value||0,da=+$('pa-desca').value||0,ds=+$('pa-descs').value||0;fields={'Nombre':$('pa-nombre').value,'Proyecto':$('pa-proyecto').value,'Fecha':$('pa-fecha').value||null,'Quincena':$('pa-quincena').value,'Valor quincena':v,'Desc abono':da,'Desc seguro':ds,'Total Q':Math.max(0,v-da-ds),'Estado':$('pa-estado').value};tableKey='pagos';}
+  if(t==='adelanto'){req=$('a-proyecto').value.trim();const ab=+$('a-abonado').value||0,tot=+$('a-total').value||0;fields={'Arquitecto':$('a-arq').value,'Proyecto':$('a-proyecto').value,'Nombre':$('a-nombre').value,'Descripción':$('a-desc').value,'Fecha inicio':$('a-finicio').value||null,'Fecha corte':$('a-fcorte').value||null,'Valor corte':+$('a-vcorte').value||0,'Total abonado':ab,'Total proyecto':tot,'Pendiente':tot>0?Math.max(0,tot-ab):0,'Observaciones':$('a-obs').value};tableKey='adelantos';}
+  if(t==='deuda'){req=$('de-emp').value.trim();const cant=+$('de-cantidad').value||0,ab=+$('de-abonos').value||0;fields={'Empleado':$('de-emp').value,'Fecha préstamo':$('de-fecha').value||null,'Cantidad':cant,'Descripción':$('de-desc').value,'Abonos':ab,'Saldo':Math.max(0,cant-ab),'Fecha abono':$('de-fabono').value||null};tableKey='deudas';}
+  if(!req)return alert('Campo obligatorio vacío');
+  setBusy(t,true);
+  try{
+    const eid=editId[t];
+    if(eid){
+      const upd=await brPatch(tableKey,eid,fields);
+      const i=C[tableKey].findIndex(r=>r.id===eid);
+      if(i>=0)C[tableKey][i]={...C[tableKey][i],...upd};
+      toast('✓ Actualizado en Baserow');
+    }else{
+      const cr=await brCreate(tableKey,fields);
+      C[tableKey].push(cr);
+      toast('✓ Creado en Baserow');
+    }
+    cm(t);renderTabla(tableKey);
+    if(tableKey==='pagos')metricasPagos();
+    if(tableKey==='deudas')metricasDeudas();
+  }catch(e){toast(e.message,true);}
+  finally{setBusy(t,false);}
+}
+
+async function eliminar(tableKey,id){
+  if(!confirm('¿Eliminar este registro? No se puede deshacer.'))return;
+  try{
+    await brDelete(tableKey,id);
+    C[tableKey]=C[tableKey].filter(r=>r.id!==id);
+    renderTabla(tableKey);
+    if(tableKey==='pagos')metricasPagos();
+    if(tableKey==='deudas')metricasDeudas();
+    toast('✓ Eliminado de Baserow');
+  }catch(e){toast(e.message,true);}
+}
+
+async function abonar(id,saldo,abActual,cantidad){
+  const v=prompt(`Saldo: ${fmt(saldo)}\n¿Cuánto abonar?`);
+  if(!v||+v<=0)return;
+  const newAb=abActual+(+v);
+  const newSaldo=Math.max(0,cantidad-newAb);
+  try{
+    const upd=await brPatch('deudas',id,{Abonos:newAb,Saldo:newSaldo,'Fecha abono':td()});
+    const i=C.deudas.findIndex(r=>r.id===id);
+    if(i>=0)C.deudas[i]={...C.deudas[i],...upd};
+    renderTabla('deudas');metricasDeudas();
+    toast('✓ Abono registrado en Baserow');
+  }catch(e){toast(e.message,true);}
+}
+
+function calcQ(){
+  const v=+$('pa-valor').value||0,da=+$('pa-desca').value||0,ds=+$('pa-descs').value||0;
+  $('pa-total').textContent=fmt(Math.max(0,v-da-ds));
+}
+
+async function syncAll(){
+  toast('Sincronizando con Baserow...');
+  progress(0.1);
+  const keys=Object.keys(TABLES);
+  for(let i=0;i<keys.length;i++){
+    await cargar(keys[i]);
+    progress((i+2)/(keys.length+1));
+  }
+  progress(1);
+  setTimeout(()=>progress(0),600);
+  renderDash();
+  $('top-sub').textContent='Sincronizado con Baserow ✓';
+  toast('✓ Todo sincronizado');
+}
+
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
+
+/* ══ INIT ══ */
+(async()=>{
+  progress(0.05);
+  $('top-sub').textContent='Cargando datos desde Baserow...';
+  const keys=Object.keys(TABLES);
+  for(let i=0;i<keys.length;i++){
+    await cargar(keys[i]);
+    progress((i+1)/keys.length*0.95);
+  }
+  progress(1);
+  setTimeout(()=>progress(0),500);
+  renderDash();
+  $('top-sub').textContent='Resumen general — Baserow conectado ✓';
+  toast('✓ Conectado a Baserow');
+})();
+</script>
+</body>
+</html>
