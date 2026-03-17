@@ -377,63 +377,40 @@ function toast(msg,err=false){
 }
 function progress(v){$('pbar').style.transform=`scaleX(${v})`;}
 
-/* ══ CLAUDE → BASEROW PROXY ══
-   Usamos la API de Anthropic para hacer las llamadas a Baserow,
-   ya que fetch directo está bloqueado en el sandbox de Claude.
-*/
-async function brCall(method, path, body=null) {
-  const fullUrl = `${BR}${path}`;
-  const prompt = `Haz una llamada HTTP a Baserow y devuelve SOLO el JSON de respuesta sin ningún texto adicional, sin markdown, sin explicaciones.
-
-Método: ${method}
-URL: ${fullUrl}
-Headers: Authorization: Token ${BR_TOKEN}, Content-Type: application/json
-${body ? 'Body: ' + JSON.stringify(body) : 'Body: ninguno'}
-
-Responde ÚNICAMENTE con el JSON de la respuesta HTTP. Si es DELETE exitoso responde: {"deleted":true}`;
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      messages: [{role:'user', content: prompt}]
-    })
-  });
-  if(!res.ok) throw new Error(`Claude API error ${res.status}`);
-  const d = await res.json();
-  const txt = d.content.map(b=>b.text||'').join('').trim();
-  // strip possible markdown fences
-  const clean = txt.replace(/^```(?:json)?\n?/,'').replace(/\n?```$/,'').trim();
-  try { return JSON.parse(clean); }
-  catch(e) { throw new Error('Respuesta inesperada: '+txt.slice(0,120)); }
-}
+/* ══ BASEROW API — fetch directo ══ */
+const BRH = () => ({
+  'Authorization': `Token ${BR_TOKEN}`,
+  'Content-Type': 'application/json'
+});
 
 async function brGet(tableKey) {
-  let url = `/database/rows/table/${TABLES[tableKey]}/?user_field_names=true&size=200`;
+  let url = `${BR}/database/rows/table/${TABLES[tableKey]}/?user_field_names=true&size=200`;
   let all = [];
   while(url) {
-    const d = await brCall('GET', url);
-    if(d.error) throw new Error(d.error+': '+(d.detail||''));
+    const r = await fetch(url, {headers: BRH()});
+    if(!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.error||e.detail||`HTTP ${r.status}`); }
+    const d = await r.json();
     all = all.concat(d.results||[]);
-    // next page — strip the base URL
-    url = d.next ? d.next.replace(BR,'') : null;
+    url = d.next || null;
   }
   return all;
 }
 async function brCreate(tableKey, fields) {
-  const d = await brCall('POST', `/database/rows/table/${TABLES[tableKey]}/?user_field_names=true`, fields);
-  if(d.error) throw new Error(d.error+': '+(d.detail||''));
+  const r = await fetch(`${BR}/database/rows/table/${TABLES[tableKey]}/?user_field_names=true`, {method:'POST',headers:BRH(),body:JSON.stringify(fields)});
+  const d = await r.json();
+  if(!r.ok) throw new Error(d.error||d.detail||`HTTP ${r.status}`);
   return d;
 }
 async function brPatch(tableKey, rowId, fields) {
-  const d = await brCall('PATCH', `/database/rows/table/${TABLES[tableKey]}/${rowId}/?user_field_names=true`, fields);
-  if(d.error) throw new Error(d.error+': '+(d.detail||''));
+  const r = await fetch(`${BR}/database/rows/table/${TABLES[tableKey]}/${rowId}/?user_field_names=true`, {method:'PATCH',headers:BRH(),body:JSON.stringify(fields)});
+  const d = await r.json();
+  if(!r.ok) throw new Error(d.error||d.detail||`HTTP ${r.status}`);
   return d;
 }
 async function brDelete(tableKey, rowId) {
-  const d = await brCall('DELETE', `/database/rows/table/${TABLES[tableKey]}/${rowId}/`);
+  const r = await fetch(`${BR}/database/rows/table/${TABLES[tableKey]}/${rowId}/`, {method:'DELETE',headers:BRH()});
+  if(!r.ok && r.status!==204) { const e=await r.json().catch(()=>({})); throw new Error(e.error||`HTTP ${r.status}`); }
+}/${rowId}/`);
   if(d && d.error) throw new Error(d.error+': '+(d.detail||''));
 }
 
