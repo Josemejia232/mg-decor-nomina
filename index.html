@@ -410,8 +410,6 @@ async function brPatch(tableKey, rowId, fields) {
 async function brDelete(tableKey, rowId) {
   const r = await fetch(`${BR}/database/rows/table/${TABLES[tableKey]}/${rowId}/`, {method:'DELETE',headers:BRH()});
   if(!r.ok && r.status!==204) { const e=await r.json().catch(()=>({})); throw new Error(e.error||`HTTP ${r.status}`); }
-}/${rowId}/`);
-  if(d && d.error) throw new Error(d.error+': '+(d.detail||''));
 }
 
 /* ══ CACHE Y FILTROS ══ */
